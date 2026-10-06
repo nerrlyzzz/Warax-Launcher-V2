@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src https://warax.local data: https:; style-src https://warax.local 'unsafe-inline'; script-src https://warax.local; font-src https://warax.local data:; connect-src https://warax.local" />
+<title>Warax Launcher</title>
+<link rel="stylesheet" href="https://warax.local/app.css" />
+</head>
+<body>
+<canvas id="aurora"></canvas>
+<div id="app" class="app hidden">
+  <!-- титульная панель -->
+  <header class="titlebar" id="titlebar">
+    <div class="brand">
+      <div class="brand-logo"></div>
+      <div class="brand-text">
+        <b>WARAX</b><span>VISUALS</span>
+      </div>
+    </div>
+    <div class="title-spacer"></div>
+    <div class="win-controls">
+      <button class="win-btn" id="btnMin" title="Свернуть"><svg viewBox="0 0 12 12"><rect x="2" y="5.4" width="8" height="1.2"/></svg></button>
+      <button class="win-btn close" id="btnClose" title="Закрыть"><svg viewBox="0 0 12 12"><path d="M2 2 L10 10 M10 2 L2 10" stroke-width="1.3"/></svg></button>
+    </div>
+  </header>
+
+  <div class="body">
+    <!-- боковое меню -->
+    <nav class="sidebar" id="sidebar">
+      <button class="nav" data-page="home"><i data-ic="home"></i><span>Главная</span></button>
+      <button class="nav" data-page="mods"><i data-ic="mods"></i><span>Моды</span></button>
+      <button class="nav" data-page="packs"><i data-ic="packs"></i><span>Ресурспаки</span></button>
+      <button class="nav" data-page="profiles"><i data-ic="profiles"></i><span>Профили</span></button>
+      <button class="nav" data-page="settings"><i data-ic="settings"></i><span>Настройки</span></button>
+      <div class="nav-sep"></div>
+      <button class="nav" data-page="account"><i data-ic="user"></i><span>Аккаунт</span></button>
+      <button class="nav" data-page="updates"><i data-ic="update"></i><span>Обновления</span><em class="dot" id="updDot" hidden></em></button>
+      <div class="side-foot">
+        <div class="user-chip" id="userChip" data-page="account">
+          <div class="ava" id="userAva">?</div>
+          <div class="user-meta"><b id="userName">—</b><span id="userSub">не выполнен вход</span></div>
+        </div>
+        <div class="ver" id="verLabel">v—</div>
+      </div>
+    </nav>
+
+    <!-- основной контент -->
+    <main class="content" id="content"></main>
+  </div>
+</div>
+
+<!-- экран входа -->
+<div id="login" class="login hidden">
+  <div class="login-card">
+    <div class="login-logo"></div>
+    <h1>Warax Visuals</h1>
+    <p class="login-sub">Войдите, чтобы продолжить</p>
+    <form id="loginForm">
+      <label class="fld"><i data-ic="user"></i><input id="loginUser" type="text" autocomplete="username" placeholder="Логин" required /></label>
+      <label class="fld"><i data-ic="lock"></i><input id="loginPass" type="password" autocomplete="current-password" placeholder="Пароль" required /></label>
+      <label class="remember"><input type="checkbox" id="loginRemember" checked /><span>Запомнить меня</span></label>
+      <button class="btn-primary" id="loginBtn" type="submit">Войти</button>
+      <div class="login-msg" id="loginMsg"></div>
+    </form>
+    <div class="login-foot">Доступ выдаёт администратор · <span id="loginHwid"></span></div>
+  </div>
+</div>
+
+<!-- загрузочный экран -->
+<div id="boot" class="boot">
+  <div class="boot-logo"></div>
+  <div class="boot-bar"><i></i></div>
+</div>
+
+<div id="toasts" class="toasts"></div>
+<script src="https://warax.local/app.js"></script>
+</body>
+</html>

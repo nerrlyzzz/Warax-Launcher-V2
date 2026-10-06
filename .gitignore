@@ -1,0 +1,6 @@
+build/
+packages/
+dist/
+# генерируются при сборке (содержат зашифрованные ключи)
+src/secrets.h
+src/web_pack.h
