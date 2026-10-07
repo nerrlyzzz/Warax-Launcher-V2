@@ -80,7 +80,7 @@ const HOSTS = {
   adoptium: 'https://api.adoptium.net/v3/binary/latest/8/ga/windows/x64/jre/hotspot/normal/eclipse',
 };
 const MC = '1.16.5';
-const WARAX_REPO = 'nerrlyzzz/Warvark-Visuals-v3', WARAX_TAG = '', WARAX_SLUG = 'warax-visuals';
+const WARAX_REPO = 'warvark/Warvax-Visuals-V3', WARAX_TAG = 'V3', WARAX_SLUG = 'warax-visuals';
 const DEFAULT_JVM = '-XX:+UnlockExperimentalVMOptions -XX:+UseG1GC -XX:G1NewSizePercent=20 -XX:G1ReservePercent=20 -XX:MaxGCPauseMillis=50 -XX:G1HeapRegionSize=32M';
 const OFFLINE_FLAGS = ['-Dminecraft.api.env=custom', '-Dminecraft.api.auth.host=https://nope.invalid', '-Dminecraft.api.account.host=https://nope.invalid', '-Dminecraft.api.session.host=https://nope.invalid', '-Dminecraft.api.services.host=https://nope.invalid'];
 
@@ -773,9 +773,9 @@ function pickModJar(assets) {
 }
 
 async function fallbackWaraxFromGithub(tasks, gameDir, prevErr) {
-  // резерв: скачать jar из GitHub-релиза nerrlyzzz/Warvark-Visuals-v3 (latest -> список релизов)
+  // резерв: скачать jar из GitHub-релиза (тег -> latest -> список релизов)
   const api = `https://api.github.com/repos/${WARAX_REPO}/releases`;
-  const tries = (WARAX_TAG ? [`${api}/tags/${encodeURIComponent(WARAX_TAG)}`] : []).concat([`${api}/latest`, `${api}?per_page=15`]);
+  const tries = [`${api}/tags/${encodeURIComponent(WARAX_TAG)}`, `${api}/latest`, `${api}?per_page=15`];
   const errs = [];
   let asset = null;
   for (const u of tries) {
