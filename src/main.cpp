@@ -5,6 +5,7 @@
 // =====================================================================
 #include <windows.h>
 #include <shellapi.h>
+#include <commdlg.h>
 #include <shlobj.h>
 #include <shlwapi.h>
 #include <dwmapi.h>
@@ -718,6 +719,38 @@ static void handleMessage(const std::string& msg) {
         if (cmd == "hide") { ShowWindow(g_hwnd, SW_HIDE); reply(id, true, true); return; }
         if (cmd == "show") { ShowWindow(g_hwnd, SW_SHOW); ShowWindow(g_hwnd, SW_RESTORE); SetForegroundWindow(g_hwnd); reply(id, true, true); return; }
         if (cmd == "openUrl") { openExternal(W(a.value("url", ""))); reply(id, true, true); return; }
+        if (cmd == "pickFiles") {
+            // системное окно выбора файлов (.jar / .zip), можно выбрать несколько
+            std::vector<wchar_t> buf(65536, 0);
+            OPENFILENAMEW of{};
+            of.lStructSize = sizeof(of);
+            of.hwndOwner = g_hwnd;
+            of.lpstrFilter = L"\u041c\u043e\u0434\u044b Minecraft (*.jar)\0*.jar\0\u0420\u0435\u0441\u0443\u0440\u0441\u043f\u0430\u043a\u0438 (*.zip)\0*.zip\0\u0412\u0441\u0435 \u0444\u0430\u0439\u043b\u044b\0*.*\0\0";
+            of.nFilterIndex = a.value("zip", false) ? 2 : 1;
+            of.lpstrFile = buf.data();
+            of.nMaxFile = (DWORD)buf.size();
+            of.Flags = OFN_EXPLORER | OFN_ALLOWMULTISELECT | OFN_FILEMUSTEXIST | OFN_PATHMUSTEXIST | OFN_NOCHANGEDIR;
+            json out = json::array();
+            if (GetOpenFileNameW(&of)) {
+                std::wstring first(buf.data());
+                const wchar_t* q = buf.data() + first.size() + 1;
+                if (*q == 0) {
+                    out.push_back(P(fs::path(first)));
+                } else {
+                    while (*q) { std::wstring n(q); out.push_back(P(fs::path(first) / n)); q += n.size() + 1; }
+                }
+            }
+            reply(id, true, out);
+            return;
+        }
+        if (cmd == "copyFile") {
+            fs::path from = rp(a.at("from").get<std::string>()), to = rp(a.at("to").get<std::string>());
+            std::error_code ec;
+            fs::create_directories(to.parent_path(), ec);
+            fs::copy_file(from, to, fs::copy_options::overwrite_existing, ec);
+            reply(id, true, !ec);
+            return;
+        }
         if (cmd == "openPath") {
             fs::path p = rp(a.value("path", "."));
             std::error_code ec;

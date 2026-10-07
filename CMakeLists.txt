@@ -46,7 +46,7 @@ else()
 endif()
 target_link_libraries(WaraxLauncher PRIVATE
   "${WEBVIEW2_DIR}/build/native/${WV2_ARCH}/WebView2LoaderStatic.lib"
-  windowsapp bcrypt winhttp dwmapi shlwapi crypt32 ole32 oleaut32 shell32 advapi32 user32 gdi32 version)
+  windowsapp comdlg32 bcrypt winhttp dwmapi shlwapi crypt32 ole32 oleaut32 shell32 advapi32 user32 gdi32 version)
 
 option(WL_DEV "Режим разработки: выключает защиту (DevTools, отладчик)" OFF)
 if(WL_DEV)

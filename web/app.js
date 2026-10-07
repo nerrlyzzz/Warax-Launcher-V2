@@ -80,7 +80,7 @@ const HOSTS = {
   adoptium: 'https://api.adoptium.net/v3/binary/latest/8/ga/windows/x64/jre/hotspot/normal/eclipse',
 };
 const MC = '1.16.5';
-const WARAX_REPO = 'warvark/Warvax-Visuals-V3', WARAX_TAG = 'V3', WARAX_SLUG = 'warax-visuals';
+const WARAX_REPO = 'nerrlyzzz/Warvark-Visuals-v3', WARAX_TAG = '', WARAX_SLUG = 'warax-visuals';
 const DEFAULT_JVM = '-XX:+UnlockExperimentalVMOptions -XX:+UseG1GC -XX:G1NewSizePercent=20 -XX:G1ReservePercent=20 -XX:MaxGCPauseMillis=50 -XX:G1HeapRegionSize=32M';
 const OFFLINE_FLAGS = ['-Dminecraft.api.env=custom', '-Dminecraft.api.auth.host=https://nope.invalid', '-Dminecraft.api.account.host=https://nope.invalid', '-Dminecraft.api.session.host=https://nope.invalid', '-Dminecraft.api.services.host=https://nope.invalid'];
 
@@ -312,6 +312,7 @@ function listPage(kind) {
     <div class="toolbar"><div class="search"><i data-ic="search"></i><input id="q" placeholder="Поиск..." value="${esc(filter.q)}"></div></div>
     <div id="chipbar"></div><div class="grid" id="grid" style="margin-top:16px"></div>`;
   const grid = $('#grid', node);
+  if (isMod) node.insertBefore(customModsBlock(), node.querySelector('.toolbar'));
   function render() {
     grid.innerHTML = '';
     const q = filter.q.toLowerCase();
@@ -356,6 +357,94 @@ function listPage(kind) {
   render();
   return node;
 }
+
+// ---------------- Свои моды (.jar с компьютера) ----------------
+const CUSTOM_DIR = 'custom_mods';
+function customList() { return (App.cfg.custom_mods = App.cfg.custom_mods || []); }
+function fmtSize(b) { return b > 1048576 ? (b / 1048576).toFixed(1) + ' МБ' : Math.max(1, Math.round(b / 1024)) + ' КБ'; }
+
+async function addCustomMods(paths) {
+  let added = 0;
+  for (const full of paths || []) {
+    const name = String(full).split(/[\\/]/).pop();
+    if (!/\.jar$/i.test(name)) { toast('Пропущено', name + ' — это не .jar', 'warn'); continue; }
+    const ok = await N('copyFile', { from: full, to: `${CUSTOM_DIR}/${name}` }).catch(() => false);
+    if (!ok) { toast('Не удалось добавить', name, 'warn'); continue; }
+    const list = customList();
+    const ex = list.find((m) => m.name === name);
+    if (ex) ex.on = true; else list.push({ name, on: true, added: Date.now() });
+    added++;
+  }
+  if (added) { saveCfg(); toast('Моды добавлены', added + ' шт. — подключатся при следующем запуске', 'ok'); }
+  return added;
+}
+
+/** Сверяет папку custom_mods с конфигом (если файл удалили руками — убираем из списка, если подкинули — добавляем). */
+async function syncCustomFolder() {
+  await N('mkdir', { path: CUSTOM_DIR }).catch(() => {});
+  const files = await N('list', { path: CUSTOM_DIR }).catch(() => []) || [];
+  const jars = files.filter((f) => !f.dir && /\.jar$/i.test(f.name));
+  const list = customList();
+  const names = new Set(jars.map((f) => f.name));
+  for (let i = list.length - 1; i >= 0; i--) if (!names.has(list[i].name)) list.splice(i, 1);
+  for (const f of jars) {
+    const m = list.find((x) => x.name === f.name);
+    if (m) m.size = f.size; else list.push({ name: f.name, on: true, size: f.size, added: Date.now() });
+  }
+  saveCfg();
+  return list;
+}
+
+function customModsBlock() {
+  const box = el('div', 'card custom-mods');
+  box.innerHTML = `<div class="cm-head"><div><h3><i class="ic" data-ic="mods"></i>Свои моды</h3>
+      <p>Добавьте любой .jar под Fabric 1.16.5 — он сам подключится при запуске.</p></div>
+      <div class="cm-btns"><button class="btn-ghost" id="cmFolder">Папка</button><button class="btn-primary" id="cmAdd">+ Добавить мод</button></div></div>
+    <div class="cm-drop" id="cmDrop">Нажмите «Добавить мод» и выберите один или несколько файлов .jar</div>
+    <div class="cm-list" id="cmList"></div>`;
+  const listNode = $('#cmList', box);
+  async function draw() {
+    const list = await syncCustomFolder();
+    $('#cmDrop', box).hidden = list.length > 0;
+    listNode.innerHTML = '';
+    list.forEach((m) => {
+      const row = el('div', 'cm-row' + (m.on ? ' on' : ''));
+      row.innerHTML = `<div class="cm-ico">JAR</div><div class="cm-meta"><b title="${esc(m.name)}">${esc(m.name.replace(/\.jar$/i, ''))}</b>
+        <small>${m.size ? fmtSize(m.size) : ''}${m.on ? ' • включён' : ' • выключен'}</small></div>
+        <div class="sw${m.on ? ' on' : ''}"></div><button class="cm-del" title="Удалить">✕</button>`;
+      row.querySelector('.sw').onclick = () => { m.on = !m.on; saveCfg(); draw(); };
+      row.querySelector('.cm-del').onclick = async () => {
+        if (!row.classList.contains('confirm')) { row.classList.add('confirm'); toast('Удалить мод?', 'Нажмите ✕ ещё раз', 'warn'); setTimeout(() => row.classList.remove('confirm'), 2500); return; }
+        await N('remove', { path: `${CUSTOM_DIR}/${m.name}` }).catch(() => {});
+        await N('remove', { path: `game/mods/${m.name}` }).catch(() => {});
+        const l = customList(); const i = l.indexOf(m); if (i >= 0) l.splice(i, 1);
+        saveCfg(); draw();
+      };
+      listNode.appendChild(row);
+    });
+    paintIcons(box);
+  }
+  $('#cmAdd', box).onclick = async () => {
+    const paths = await N('pickFiles', {}).catch((e) => { toast('Ошибка', e.message, 'warn'); return []; });
+    if (paths && paths.length) { await addCustomMods(paths); draw(); }
+  };
+  $('#cmFolder', box).onclick = () => N('openPath', { path: CUSTOM_DIR }).then(() => toast('Папка открыта', 'Кидайте .jar сюда, затем вернитесь на эту страницу'));
+  draw();
+  return box;
+}
+
+/** При запуске: включённые свои моды копируются в game/mods, выключенные — убираются оттуда. */
+async function installCustomMods(gameDir) {
+  const list = await syncCustomFolder().catch(() => customList());
+  let n = 0;
+  for (const m of list) {
+    const dst = `${gameDir}/mods/${m.name}`;
+    if (m.on) { if (await N('copyFile', { from: `${CUSTOM_DIR}/${m.name}`, to: dst }).catch(() => false)) n++; }
+    else await N('remove', { path: dst }).catch(() => {});
+  }
+  return n;
+}
+
 PAGES.mods = () => listPage('mods');
 PAGES.packs = () => listPage('packs');
 
@@ -681,6 +770,10 @@ async function prepareAndLaunch() {
     } catch (e) { toast('Пак пропущен', slug + ': ' + e.message, 'warn'); }
   }
 
+  // ---- свои моды игрока
+  try { const cn = await installCustomMods(gameDir); if (cn) setProgress(36, 'Свои моды подключены', cn + ' шт.'); }
+  catch (e) { toast('Свои моды', e.message, 'warn'); }
+
   // ---- массовая загрузка
   setProgress(38, 'Загрузка файлов…', tasks.length + ' объектов');
   await downloadGroup(tasks, 'files', 38, 82);
@@ -773,9 +866,9 @@ function pickModJar(assets) {
 }
 
 async function fallbackWaraxFromGithub(tasks, gameDir, prevErr) {
-  // резерв: скачать jar из GitHub-релиза (тег -> latest -> список релизов)
+  // резерв: скачать jar из GitHub-релиза nerrlyzzz/Warvark-Visuals-v3 (latest -> список релизов)
   const api = `https://api.github.com/repos/${WARAX_REPO}/releases`;
-  const tries = [`${api}/tags/${encodeURIComponent(WARAX_TAG)}`, `${api}/latest`, `${api}?per_page=15`];
+  const tries = (WARAX_TAG ? [`${api}/tags/${encodeURIComponent(WARAX_TAG)}`] : []).concat([`${api}/latest`, `${api}?per_page=15`]);
   const errs = [];
   let asset = null;
   for (const u of tries) {

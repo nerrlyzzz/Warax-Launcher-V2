@@ -261,3 +261,23 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;heigh
 @keyframes spin{to{transform:rotate(360deg)}}
 .ic{display:inline-block;width:1em;height:1em}
 .tag{font-size:10px;font-weight:800;padding:2px 7px;border-radius:6px;background:rgba(255,206,77,.16);color:var(--warn);letter-spacing:.5px}
+
+/* ---- свои моды ---- */
+.custom-mods{padding:18px;margin-bottom:18px;background:linear-gradient(135deg,rgba(255,79,216,.10),rgba(120,90,255,.08)),var(--panel);border:1px solid var(--stroke2)}
+.cm-head{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap}
+.cm-head h3{font-size:16px;font-weight:800;display:flex;align-items:center;gap:8px}
+.cm-head p{font-size:12px;color:var(--dim);margin-top:4px}
+.cm-btns{display:flex;gap:8px}
+.btn-ghost{padding:11px 16px;border-radius:11px;font-weight:700;color:#fff;background:rgba(255,255,255,.06);border:1px solid var(--stroke);cursor:pointer;transition:.2s}
+.btn-ghost:hover{background:rgba(255,255,255,.12);transform:translateY(-2px)}
+.cm-drop{margin-top:14px;padding:22px;border:1.5px dashed var(--stroke2);border-radius:var(--r2);text-align:center;color:var(--dim);font-size:13px}
+.cm-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px;margin-top:14px}
+.cm-row{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:12px;background:var(--panel2);border:1px solid var(--stroke);transition:.2s}
+.cm-row.on{border-color:var(--stroke2)}
+.cm-row:not(.on){opacity:.6}
+.cm-ico{width:38px;height:38px;border-radius:10px;display:grid;place-items:center;font-size:10px;font-weight:900;letter-spacing:.5px;color:#fff;background:linear-gradient(135deg,var(--a1,#ff4fd8),var(--a2,#7a5cff));flex-shrink:0}
+.cm-meta{flex:1;min-width:0}
+.cm-meta b{display:block;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cm-meta small{font-size:11px;color:var(--dim)}
+.cm-del{width:28px;height:28px;border-radius:8px;border:0;background:rgba(255,255,255,.05);color:var(--dim);cursor:pointer;transition:.2s}
+.cm-del:hover,.cm-row.confirm .cm-del{background:#ff4d6a;color:#fff}
