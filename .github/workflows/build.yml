@@ -1,13 +1,13 @@
 name: Build Warax Launcher (C++)
-
+​
 on:
   push:
     branches: [ main, master ]
   workflow_dispatch:
-
+​
 permissions:
   contents: write
-
+​
 jobs:
   build:
     runs-on: windows-latest
@@ -17,19 +17,19 @@ jobs:
       PYTHONIOENCODING: "utf-8"
     steps:
       - uses: actions/checkout@v4
-
+​
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-
+​
       - uses: ilammy/msvc-dev-cmd@v1
         with:
           arch: x64
-
+​
       - name: WebView2 SDK
         shell: pwsh
         run: nuget install Microsoft.Web.WebView2 -OutputDirectory packages -ExcludeVersion -NonInteractive
-
+​
       - name: Encrypt UI + secrets
         shell: pwsh
         env:
@@ -38,28 +38,31 @@ jobs:
         run: |
           if (-not $env:SUPABASE_URL) { Write-Warning "SUPABASE_URL не задан — вход работать не будет" }
           python tools/pack.py
-
+​
+      - name: Ninja
+        run: python -m pip install --disable-pip-version-check ninja
+​
       - name: Configure
-        run: cmake -S . -B build -G "Visual Studio 17 2022" -A x64
-
+        run: cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER=cl -DCMAKE_CXX_COMPILER=cl
+​
       - name: Build
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
-        run: cmake --build build --config Release --parallel
-
+        run: cmake --build build --parallel
+​
       - name: Collect
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force dist | Out-Null
-          Copy-Item build/Release/WaraxLauncher.exe dist/WaraxLauncher.exe
+          Copy-Item build/WaraxLauncher.exe dist/WaraxLauncher.exe
           Get-Item dist/WaraxLauncher.exe | Format-List Name,Length
-
+​
       - uses: actions/upload-artifact@v4
         with:
           name: WaraxLauncher
           path: dist/WaraxLauncher.exe
-
+​
       - name: Publish release
         uses: softprops/action-gh-release@v2
         with:
