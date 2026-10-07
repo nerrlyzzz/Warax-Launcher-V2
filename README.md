@@ -18,7 +18,7 @@
    `supabase functions deploy get-mod --no-verify-jwt`. Код функции лежит в `supabase/functions/get-mod`.
    Если этот шаг пропустить, лаунчер возьмёт мод из GitHub-релиза (так менее защищённо).
 3. **GitHub → Settings → Secrets → Actions:** добавьте `SUPABASE_URL` и `SUPABASE_KEY` (ключ anon / publishable).
-4. Загрузите проект в `warvark/Warvex-Launcher`. Сборка запустится в Actions, а `WaraxLauncher.exe` появится в релизе `releases`.
+4. Загрузите проект в `nerrlyzzz/Warax-Launcher-V2`. Сборка запустится в Actions, а `WaraxLauncher.exe` появится в релизе `releases`.
 
 ## Управление
 | Задача | SQL |
@@ -37,7 +37,7 @@ Windows 7 и 8 не поддерживаются: на них WebView2 боль�
 nuget install Microsoft.Web.WebView2 -OutputDirectory packages -ExcludeVersion
 set SUPABASE_URL=...
 set SUPABASE_KEY=...
-cmake -S . -B build -A x64
-cmake --build build --config Release
+cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release   (в "x64 Native Tools Command Prompt")
+cmake --build build
 ```
 `-DWL_DEV=ON` включает DevTools и отключает защиту. Используйте этот флаг только для отладки.

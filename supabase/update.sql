@@ -17,7 +17,7 @@ create table if not exists public.launcher_config (
   id             int primary key default 1 check (id = 1),
   min_version    text not null default '2.0.0',   -- версии ниже не смогут войти
   latest_version text not null default '2.0.0',
-  update_page    text not null default 'https://github.com/warvark/Warvex-Launcher/releases/tag/releases',
+  update_page    text not null default 'https://github.com/nerrlyzzz/Warax-Launcher-V2/releases/tag/releases',
   news           text,
   mod_path       text not null default 'warax-visuals.jar'  -- файл в приватном bucket 'mods'
 );

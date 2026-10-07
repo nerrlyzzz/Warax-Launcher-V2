@@ -276,8 +276,16 @@ static std::string downloadTo(const std::string& url, const fs::path& dst,
             }, attempt == 0 ? clen : nullptr, 60000);
         }
         if (r.error.empty() && r.status >= 200 && r.status < 300) {
-            if (MoveFileExW(tmp.c_str(), dst.c_str(), MOVEFILE_REPLACE_EXISTING | MOVEFILE_COPY_ALLOWED)) return "";
-            last = "не удалось сохранить " + P(dst);
+            // антивирус (Defender) часто держит свежий .jar на проверке — ждём и повторяем
+            DWORD le = 0;
+            for (int k = 0; k < 25; k++) {
+                SetFileAttributesW(dst.c_str(), FILE_ATTRIBUTE_NORMAL);
+                if (MoveFileExW(tmp.c_str(), dst.c_str(), MOVEFILE_REPLACE_EXISTING | MOVEFILE_COPY_ALLOWED)) return "";
+                le = GetLastError();
+                if (CopyFileW(tmp.c_str(), dst.c_str(), FALSE)) { fs::remove(tmp, ec); return ""; }
+                Sleep(200);
+            }
+            last = "не удалось сохранить " + P(dst) + " (код " + std::to_string((int)le) + ", файл занят антивирусом?)";
         } else {
             last = r.error.empty() ? "HTTP " + std::to_string(r.status) : r.error;
         }
@@ -642,7 +650,7 @@ static json handleAsync(const std::string& cmd, const json& a, const json& id) {
             std::string err = b.is_discarded() ? (r.value("error", "").empty() ? "HTTP " + std::to_string(st) : r.value("error", "")) : b.value("error", "denied");
             return {{"error", err}};
         }
-        fs::path dst = tempDir() / W("wx_" + randHex(8) + ".jar");
+        fs::path dst = g_base / L"cache" / W("wx_" + randHex(8) + ".jar");
         std::string e = downloadTo(b.value("url", ""), dst, nullptr, nullptr);
         if (!e.empty()) return {{"error", "download: " + e}};
         SetFileAttributesW(dst.c_str(), FILE_ATTRIBUTE_HIDDEN | FILE_ATTRIBUTE_TEMPORARY);

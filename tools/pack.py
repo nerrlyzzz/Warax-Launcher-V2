@@ -91,11 +91,11 @@ def main():
     supa_key = os.environ.get("SUPABASE_KEY", "").strip()
     version = os.environ.get("LAUNCHER_VERSION", "2.0.0").strip() or "2.0.0"
     update_page = os.environ.get(
-        "UPDATE_PAGE", "https://github.com/warvark/Warvex-Launcher/releases/tag/releases"
+        "UPDATE_PAGE", "https://github.com/nerrlyzzz/Warax-Launcher-V2/releases/tag/releases"
     ).strip()
     update_api = os.environ.get(
         "UPDATE_API",
-        "https://api.github.com/repos/warvark/Warvex-Launcher/releases/tags/releases",
+        "https://api.github.com/repos/nerrlyzzz/Warax-Launcher-V2/releases/tags/releases",
     ).strip()
 
     # ---------------- secrets.h ----------------

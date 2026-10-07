@@ -80,7 +80,7 @@ const HOSTS = {
   adoptium: 'https://api.adoptium.net/v3/binary/latest/8/ga/windows/x64/jre/hotspot/normal/eclipse',
 };
 const MC = '1.16.5';
-const WARAX_REPO = 'warvark/Warvax-Visuals-V3', WARAX_TAG = 'V3', WARAX_SLUG = 'warax-visuals';
+const WARAX_REPO = 'nerrlyzzz/Warvark-Visuals-v3', WARAX_TAG = '', WARAX_SLUG = 'warax-visuals';
 const DEFAULT_JVM = '-XX:+UnlockExperimentalVMOptions -XX:+UseG1GC -XX:G1NewSizePercent=20 -XX:G1ReservePercent=20 -XX:MaxGCPauseMillis=50 -XX:G1HeapRegionSize=32M';
 const OFFLINE_FLAGS = ['-Dminecraft.api.env=custom', '-Dminecraft.api.auth.host=https://nope.invalid', '-Dminecraft.api.account.host=https://nope.invalid', '-Dminecraft.api.session.host=https://nope.invalid', '-Dminecraft.api.services.host=https://nope.invalid'];
 
@@ -695,13 +695,16 @@ async function prepareAndLaunch() {
   let addModsArg = '';
   if (App.cfg.auto_warax_mod) {
     setProgress(88, 'Получение мода Warax…', '');
-    try {
-      const res = await N('fetchMod', { token: App.session ? App.session.token : '' });
-      if (res && res.path) { waraxTempJar = res.path; addModsArg = '-Dfabric.addMods=' + res.path; }
-      else if (res && res.error === 'nofn') { await fallbackWaraxFromGithub(tasks, gameDir); }
-      else throw new Error((res && res.error) || 'denied');
-    } catch (e) {
-      await fallbackWaraxFromGithub(null, gameDir, e);
+    let res = null;
+    try { res = await N('fetchMod', { token: App.session ? App.session.token : '' }); }
+    catch (e) { res = { error: e.message }; }
+    if (res && res.path) { waraxTempJar = res.path; addModsArg = '-Dfabric.addMods=' + res.path; }
+    else {
+      const err = (res && res.error) || 'unknown';
+      if (['banned', 'expired', 'invalid', 'hwid', 'outdated'].includes(err)) throw new Error(LOGIN_ERR[err] || err);
+      // GitHub — только если сервер выдачи вообще не настроен; иначе показываем ошибку сервера
+      if (err === 'nofn' || err === 'noconfig') await fallbackWaraxFromGithub(tasks, gameDir, null);
+      else throw new Error('Сервер мода: ' + err);
     }
   }
 
@@ -764,18 +767,41 @@ async function prepareAndLaunch() {
   if (App.cfg.hide_on_launch) setTimeout(() => N('hide', {}), 1200);
 }
 
+function pickModJar(assets) {
+  const jars = (assets || []).filter((a) => /\.jar$/i.test(a.name) && !/(sources|javadoc|dev|shadow-dev)\.jar$/i.test(a.name));
+  return jars.find((a) => /warax/i.test(a.name)) || jars[0] || null;
+}
+
 async function fallbackWaraxFromGithub(tasks, gameDir, prevErr) {
-  // резерв: скачать jar из GitHub-релиза (внимание: публичный URL)
-  try {
-    const rel = await httpJson(`https://api.github.com/repos/${WARAX_REPO}/releases/tags/${WARAX_TAG}`);
-    const asset = (rel.assets || []).find((a) => /\.jar$/i.test(a.name));
-    if (!asset) throw new Error('в релизе нет .jar');
-    const mp = `${gameDir}/mods/${asset.name}`;
-    await downloadGroup([{ url: asset.browser_download_url, path: mp, quick: true }], 'warax');
-    toast('Мод Warax', 'Взят из публичного релиза (сервер выдачи не настроен)', 'warn');
-  } catch (e) {
-    throw new Error('Мод Warax недоступен: ' + (prevErr ? prevErr.message + '; ' : '') + e.message);
+  // резерв: скачать jar из GitHub-релиза nerrlyzzz/Warvark-Visuals-v3 (latest -> список релизов)
+  const api = `https://api.github.com/repos/${WARAX_REPO}/releases`;
+  const tries = (WARAX_TAG ? [`${api}/tags/${encodeURIComponent(WARAX_TAG)}`] : []).concat([`${api}/latest`, `${api}?per_page=15`]);
+  const errs = [];
+  let asset = null;
+  for (const u of tries) {
+    try {
+      const r = await httpJson(u);
+      const list = Array.isArray(r) ? r : [r];
+      for (const rel of list) { asset = pickModJar(rel.assets); if (asset) break; }
+      if (asset) break;
+      errs.push('в релизе нет .jar');
+    } catch (e) { errs.push(e.message); }
   }
+  if (!asset) {
+    throw new Error('Мод Warax не скачался. ' + (prevErr ? 'Сервер: ' + prevErr.message + '. ' : '') + 'GitHub (' + WARAX_REPO + '): ' + errs.join(' | '));
+  }
+  const modsDir = `${gameDir}/mods`;
+  await N('mkdir', { path: modsDir });
+  // убираем старые копии мода, чтобы не было дублей
+  try {
+    const items = await N('list', { path: modsDir });
+    for (const it of (items || [])) {
+      const name = typeof it === 'string' ? it : (it && it.name);
+      if (name && /warax/i.test(name) && name !== asset.name) await N('remove', { path: `${modsDir}/${name}` }).catch(() => {});
+    }
+  } catch {}
+  await downloadGroup([{ url: asset.browser_download_url, path: `${modsDir}/${asset.name}`, size: asset.size }], 'warax', 86, 90);
+  if (prevErr) toast('Мод Warax', 'Взят из GitHub (сервер выдачи: ' + prevErr.message + ')', 'warn');
 }
 
 async function ensureServerOptions(gameDir, p) {
