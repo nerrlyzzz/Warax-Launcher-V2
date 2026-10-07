@@ -6,6 +6,7 @@
 #include <cstdint>
 #include <initializer_list>
 #include <stdexcept>
+#include <cmath>
 #include <string>
 #include <utility>
 #include <vector>
@@ -87,6 +88,12 @@ public:
         return obj.back().second;
     }
     json& operator[](const char* key) { return (*this)[std::string(key)]; }
+    const json& operator[](const std::string& key) const {
+        static const json null_value;
+        const json* p = (t == value_t::object) ? find(key) : nullptr;
+        return p ? *p : null_value;
+    }
+    const json& operator[](const char* key) const { return (*this)[std::string(key)]; }
 
     json& at(const std::string& key) {
         json* p = (t == value_t::object) ? find(key) : nullptr;
@@ -210,7 +217,7 @@ private:
         case value_t::number_integer: out += std::to_string(i); break;
         case value_t::number_unsigned: out += std::to_string(u); break;
         case value_t::number_float: {
-            if (d != d || d == 1e400 || d == -1e400) { out += "null"; break; }
+            if (!std::isfinite(d)) { out += "null"; break; }
             char buf[32];
             snprintf(buf, sizeof(buf), "%.17g", d);
             out += buf;
