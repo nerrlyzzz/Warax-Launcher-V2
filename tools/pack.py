@@ -6,6 +6,13 @@
 # =====================================================================
 import os, sys, secrets, pathlib
 
+# консоль Windows (cp1252) не умеет кириллицу — переключаем вывод на UTF-8
+for _s in (sys.stdout, sys.stderr):
+    try:
+        _s.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 WEB = ROOT / "web"
 GEN = ROOT / "src"
